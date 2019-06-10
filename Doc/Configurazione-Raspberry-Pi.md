@@ -23,7 +23,7 @@ Di seguito vengono descritti i passi da effettuare per la preparazione della sch
 
 ### Setup per l'accesso ai fogli di calcolo di Google Drive
 
-Occorre aver creato le credenziali per Google Drive e Google Sheets ([vedi guida](Configurazione-Raspberry-Pi.md)) per questo passo.
+Occorre aver creato le credenziali per Google Drive e un foglio di calcolo Google Sheets ([vedi guida](Configurazione-Google-Drive-e-Google-Sheets.md)) per questo passo.
 
 Si utilizzerà Python per accedere alle API di Google. Lanciare i seguenti comandi per installare le librerie ```gspread``` e ```oauth2client```:
 
@@ -36,13 +36,13 @@ Lanciare il seguente comando per aggiornare la google lib:
 sudo pip3 install --upgrade google-auth-oauthlib
 ```
 
+Per interfacciarsi con il sensore bluetooth occorre installare la libreria [BlueST SDK](https://github.com/STMicroelectronics/BlueSTSDK_Python)
+
 ## Deploy
 
-Copiare il contenuto della cartella ```RaspberryPi``` nel ```Desktop``` della scheda Raspberry Pi.
+Copiare i file ```gateway.py``` e ```credentials.json``` in una cartella della scheda Raspberry Pi.
 
-Copiare il file .json contente le credenziali delle API di Google all'interno della cartella ```Gateway``` e rinominarlo in ```credentials.json```
-
-Lanciare lo script contenuto nella cartella Gateway utilizzando il comando:
+Posizionarsi all'interno della cartella e lanciare lo script utilizzando il comando:
 ```
-python3 gateway.py
+python2.7 gateway.py
 ```
