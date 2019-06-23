@@ -51,7 +51,7 @@ static void User_Init(void);
 static void Set_Random_Environmental_Values(float *data_t, float *data_p);
 static void Set_Random_Motion_Values(uint32_t cnt);
 static void Reset_Motion_Values(void);
-static void Set_Random_Address(uint8_t* bdaddr, uint8_t hwVersion, uint16_t fwVersion);
+static void SetRandomBleMacAddress(uint8_t* bleMacAddress, uint8_t hardwareVersion, uint16_t firmwareVersion);
 
 #if PRINT_CSV_FORMAT
 extern volatile uint32_t ms_counter;
@@ -75,43 +75,42 @@ void MX_BlueNRG_MS_Init(void)
 
 	hci_init(user_notify, NULL);
 
-	// Get the BlueNRG HW and FW versions
-	uint8_t  hwVersion;
-	uint16_t fwVersion;
-	getBlueNRGVersion(&hwVersion, &fwVersion);
+	// Get the HW and FW versions
+	uint8_t  hardwareVersion;
+	uint16_t firmwareVersion;
+	getBlueNRGVersion(&hardwareVersion, &firmwareVersion);
 
-	PRINTF("HWver %d\nFWver %d\n", hwVersion, fwVersion);
-	if (hwVersion > 0x30)
+	PRINTF("Hardware version: %d\n\r", hardwareVersion);
+	PRINTF("Firmware version: %d\n\r", firmwareVersion);
+	if (hardwareVersion > 0x30)
 	{
 		// X-NUCLEO-IDB05A1 expansion board is used
 		bnrg_expansion_board = IDB05A1;
 	}
 
-	// Reset BlueNRG again otherwise we won't
-	// be able to change its MAC address.
-	// aci_hal_write_config_data() must be the first
-	// command after reset otherwise it will fail.
+	// Reset BlueNRG again otherwise we won't be able to change its MAC address.
+	// aci_hal_write_config_data() must be the first command after reset otherwise it will fail.
 	hci_reset();
 	HAL_Delay(100);
 
-	// Change the MAC address to avoid issues with Android
-	// cache if different boards have the same MAC address
-	Set_Random_Address(bdaddr, hwVersion, fwVersion);
+	// Change the MAC address to avoid issues with Android cache if different boards have the same MAC address
+	SetRandomBleMacAddress(bdaddr, hardwareVersion, firmwareVersion);
+	PRINTF("BLE MAC Address: %d\n\r", bdaddr);
 
 	int ret;
 	ret = aci_hal_write_config_data(CONFIG_DATA_PUBADDR_OFFSET,
-								  CONFIG_DATA_PUBADDR_LEN,
-								  bdaddr);
+									CONFIG_DATA_PUBADDR_LEN,
+									bdaddr);
 	if (ret)
 	{
-		PRINTF("Setting BD_ADDR failed.\n");
+		PRINTF("Setting BD_ADDR failed.\n\r");
 	}
 
 	// SGATT Init
 	ret = aci_gatt_init();
-	if(ret)S
+	if(ret)
 	{
-		PRINTF("GATT_Init failed.\n");
+		PRINTF("GATT_Init failed.\n\r");
 	}
 
 	// GAP Init
@@ -126,39 +125,63 @@ void MX_BlueNRG_MS_Init(void)
 	}
 	if (ret != BLE_STATUS_SUCCESS)
 	{
-		PRINTF("GAP_Init failed.\n");
+		PRINTF("GAP_Init failed.\n\r");
 	}
 
 	// Update device name
-	const char *name = "BlueNRG";
+	const char *name = "Gateway";
 	ret = aci_gatt_update_char_value(service_handle, dev_name_char_handle, 0,
-								   strlen(name), (uint8_t *)name);
+								   	 strlen(name), (uint8_t *)name);
+	PRINTF("Characteristic name: %s\n\r", name);
+
 	if (ret)
 	{
-		PRINTF("aci_gatt_update_char_value failed.\n");
+		PRINTF("aci_gatt_update_char_value failed.\n\r");
+		while(1);
+	}
+
+
+	#define  ADV_INTERVAL_MIN_MS  800
+	#define  ADV_INTERVAL_MAX_MS  900
+	#define  CONN_INTERVAL_MIN_MS 100
+	#define  CONN_INTERVAL_MAX_MS 300
+	const char local_name[] = {AD_TYPE_COMPLETE_LOCAL_NAME,'G','a','t','e','w','a','y'};
+	const uint8_t serviceUUIDList[] = {AD_TYPE_16_BIT_SERV_UUID,0x34,0x12};
+
+	// Put the Device in general discoverable mode (as defined in GAP specification volume 3, section 9.2.4).
+	ret = aci_gap_set_discoverable(ADV_IND, (ADV_INTERVAL_MIN_MS*1000)/625,
+								   (ADV_INTERVAL_MAX_MS*1000)/625,
+								   STATIC_RANDOM_ADDR, NO_WHITE_LIST_USE,
+								   sizeof(local_name), local_name,
+								   0, NULL,
+								   (CONN_INTERVAL_MIN_MS*1000)/1250,
+								   (CONN_INTERVAL_MAX_MS*1000)/1250);
+	if (ret)
+	{
+		PRINTF("aci_gap_set_discoverable failed.\n\r");
 		while(1);
 	}
 
 	ret = aci_gap_set_auth_requirement(MITM_PROTECTION_REQUIRED,
-									 OOB_AUTH_DATA_ABSENT,
-									 NULL,
-									 7,
-									 16,
-									 USE_FIXED_PIN_FOR_PAIRING,
-									 123456,
-									 BONDING);
+									   OOB_AUTH_DATA_ABSENT,
+									   NULL,
+									   7,
+									   16,
+									   USE_FIXED_PIN_FOR_PAIRING,
+									   123456,
+									   BONDING);
 	if (ret)
 	{
-		PRINTF("aci_gap_set_authentication_requirement failed.\n");
+		PRINTF("aci_gap_set_authentication_requirement failed.\n\r");
 		while(1);
 	}
 
-	PRINTF("BLE Stack Initialized\n");
+	PRINTF("BLE Stack Initialized\n\r");
 
 	ret = Add_HWServW2ST_Service();
 	if (ret == BLE_STATUS_SUCCESS)
 	{
-		PRINTF("BlueMS HW service added successfully.\n");
+		PRINTF("BlueMS HW service added successfully.\n\r");
 	}
 	else
 	{
@@ -169,7 +192,7 @@ void MX_BlueNRG_MS_Init(void)
 	ret = Add_SWServW2ST_Service();
 	if (ret == BLE_STATUS_SUCCESS)
 	{
-		PRINTF("BlueMS SW service added successfully.\n");
+		PRINTF("BlueMS SW service added successfully.\n\r");
 	}
 	else
 	{
@@ -191,10 +214,10 @@ void MX_BlueNRG_MS_Process(void)
 // Initialize User process.
 static void User_Init(void)
 {
-  BSP_PB_Init(BUTTON_KEY, BUTTON_MODE_EXTI);
-  BSP_LED_Init(LED2);
-  
-  BSP_COM_Init(COM1);
+	BSP_PB_Init(BUTTON_KEY, BUTTON_MODE_EXTI);
+	BSP_LED_Init(LED2);
+
+	BSP_COM_Init(COM1);
 }
 
 // Process user input (i.e. pressing the USER button on Nucleo board)
@@ -336,17 +359,17 @@ static void Reset_Motion_Values(void)
  * @param  Firmware version
  * @retval None
  */
-static void Set_Random_Address(uint8_t* bdaddr, uint8_t hwVersion, uint16_t fwVersion)
-{  
-  uint8_t i;
-  
-  // Initialize a random seed
-  srand (HAL_GetTick() + hwVersion + fwVersion);
-  
-  for (i=0; i<5; i++) {
-    bdaddr[i] = rand()&0xFF;
-  }
-  bdaddr[i] = 0xD0; 
+static void SetRandomBleMacAddress(uint8_t* bleMacAddress, uint8_t hardwareVersion, uint16_t firmwareVersion)
+{
+	// Initialize a random seed
+	srand (HAL_GetTick() + hardwareVersion + firmwareVersion);
+
+	uint8_t i;
+	for (i=0; i<5; i++)
+	{
+		bleMacAddress[i] = rand()&0xFF;
+	}
+	bleMacAddress[i] = 0xD0;
 }
 
 /**
