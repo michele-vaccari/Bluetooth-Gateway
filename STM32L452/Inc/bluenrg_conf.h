@@ -33,7 +33,7 @@ extern "C" {
 #include <string.h>
 
 /*---------- Print messages from files at user level -----------*/
-#define DEBUG      0
+#define DEBUG      1
 /*---------- Print the data travelling over the SPI in the .csv format for the GUI -----------*/
 #define PRINT_CSV_FORMAT      0
 /*---------- Number of Bytes reserved for HCI Read Packet -----------*/
