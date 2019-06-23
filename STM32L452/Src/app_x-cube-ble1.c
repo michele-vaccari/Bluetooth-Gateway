@@ -68,13 +68,6 @@ void print_csv_time(void)
 void MX_BlueNRG_MS_Init(void)
 {
 	// Initialize the peripherals and the BLE Stack
-	const char *name = "BlueNRG";
-	uint16_t service_handle, dev_name_char_handle, appearance_char_handle;
-
-	uint8_t  hwVersion;
-	uint16_t fwVersion;
-	int ret;
-
 	User_Init();
 
 	// Get the User Button initial state
@@ -83,14 +76,9 @@ void MX_BlueNRG_MS_Init(void)
 	hci_init(user_notify, NULL);
 
 	// Get the BlueNRG HW and FW versions
+	uint8_t  hwVersion;
+	uint16_t fwVersion;
 	getBlueNRGVersion(&hwVersion, &fwVersion);
-
-	// Reset BlueNRG again otherwise we won't
-	// be able to change its MAC address.
-	// aci_hal_write_config_data() must be the first
-	// command after reset otherwise it will fail.
-	hci_reset();
-	HAL_Delay(100);
 
 	PRINTF("HWver %d\nFWver %d\n", hwVersion, fwVersion);
 	if (hwVersion > 0x30)
@@ -99,10 +87,18 @@ void MX_BlueNRG_MS_Init(void)
 		bnrg_expansion_board = IDB05A1;
 	}
 
+	// Reset BlueNRG again otherwise we won't
+	// be able to change its MAC address.
+	// aci_hal_write_config_data() must be the first
+	// command after reset otherwise it will fail.
+	hci_reset();
+	HAL_Delay(100);
+
 	// Change the MAC address to avoid issues with Android
 	// cache if different boards have the same MAC address
 	Set_Random_Address(bdaddr, hwVersion, fwVersion);
 
+	int ret;
 	ret = aci_hal_write_config_data(CONFIG_DATA_PUBADDR_OFFSET,
 								  CONFIG_DATA_PUBADDR_LEN,
 								  bdaddr);
@@ -119,6 +115,7 @@ void MX_BlueNRG_MS_Init(void)
 	}
 
 	// GAP Init
+	uint16_t service_handle, dev_name_char_handle, appearance_char_handle;
 	if (bnrg_expansion_board == IDB05A1)
 	{
 		ret = aci_gap_init_IDB05A1(GAP_PERIPHERAL_ROLE_IDB05A1, 0, 0x07, &service_handle, &dev_name_char_handle, &appearance_char_handle);
@@ -133,6 +130,7 @@ void MX_BlueNRG_MS_Init(void)
 	}
 
 	// Update device name
+	const char *name = "BlueNRG";
 	ret = aci_gatt_update_char_value(service_handle, dev_name_char_handle, 0,
 								   strlen(name), (uint8_t *)name);
 	if (ret)
