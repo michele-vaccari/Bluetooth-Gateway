@@ -1,26 +1,3 @@
-/**
-  ******************************************************************************
-  * File Name          : app_x-cube-ble1.c
-  * Description        : Implementation file
-  *             
-  ******************************************************************************
-  *
-  * COPYRIGHT 2019 STMicroelectronics
-  *
-  * Licensed under MCD-ST Liberty SW License Agreement V2, (the "License");
-  * You may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at:
-  *
-  *        http://www.st.com/software_license_agreement_liberty_v2
-  *
-  * Unless required by applicable law or agreed to in writing, software 
-  * distributed under the License is distributed on an "AS IS" BASIS, 
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  ******************************************************************************
-  */
-
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __APP_X_CUBE_BLE1_C
 #define __APP_X_CUBE_BLE1_C
@@ -48,10 +25,6 @@
 #include "sm.h"
 #include "stm32l4xx_hal_tim.h"
 
-/* USER CODE BEGIN Includes */
-
-/* USER CODE END Includes */
-
 /* Private defines -----------------------------------------------------------*/
 /**
  * 1 to send environmental and motion data when pushing the user button
@@ -75,10 +48,6 @@ uint8_t bdaddr[BDADDR_SIZE];
 static volatile uint8_t user_button_init_state = 1;
 static volatile uint8_t user_button_pressed = 0;
 
-/* USER CODE BEGIN PV */
-
-/* USER CODE END PV */
-
 /* Private function prototypes -----------------------------------------------*/
 static void User_Process(void);
 static void User_Init(void);
@@ -86,10 +55,6 @@ static void Set_Random_Environmental_Values(float *data_t, float *data_p);
 static void Set_Random_Motion_Values(uint32_t cnt);
 static void Reset_Motion_Values(void);
 static void Set_Random_Address(uint8_t* bdaddr, uint8_t hwVersion, uint16_t fwVersion);
-
-/* USER CODE BEGIN PFP */
-
-/* USER CODE END PFP */
 
 #if PRINT_CSV_FORMAT
 extern volatile uint32_t ms_counter;
@@ -107,14 +72,6 @@ void print_csv_time(void){
 
 void MX_BlueNRG_MS_Init(void)
 {
-  /* USER CODE BEGIN SV */ 
-
-  /* USER CODE END SV */
-  
-  /* USER CODE BEGIN BlueNRG_MS_Init_PreTreatment */
-  
-  /* USER CODE END BlueNRG_MS_Init_PreTreatment */
-
   /* Initialize the peripherals and the BLE Stack */
   const char *name = "BlueNRG";    
   uint16_t service_handle, dev_name_char_handle, appearance_char_handle;
@@ -218,10 +175,6 @@ void MX_BlueNRG_MS_Init(void)
 
   /* Set output power level */
   ret = aci_hal_set_tx_power_level(1,4);
-  
-  /* USER CODE BEGIN BlueNRG_MS_Init_PostTreatment */
-  
-  /* USER CODE END BlueNRG_MS_Init_PostTreatment */
 }
 
 /*
@@ -229,16 +182,8 @@ void MX_BlueNRG_MS_Init(void)
  */
 void MX_BlueNRG_MS_Process(void)
 {
-  /* USER CODE BEGIN BlueNRG_MS_Process_PreTreatment */
-  
-  /* USER CODE END BlueNRG_MS_Process_PreTreatment */
-  
   User_Process();  
   hci_user_evt_proc();
-
-  /* USER CODE BEGIN BlueNRG_MS_Process_PostTreatment */
-  
-  /* USER CODE END BlueNRG_MS_Process_PostTreatment */
 }
 
 /**
@@ -428,5 +373,3 @@ void BSP_PB_Callback(Button_TypeDef Button)
 }
 #endif
 #endif /* __APP_X_CUBE_BLE1_C */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
