@@ -1,11 +1,11 @@
-/* Define to prevent recursive inclusion -------------------------------------*/
+// Define to prevent recursive inclusion
 #ifndef __APP_X_CUBE_BLE1_C
 #define __APP_X_CUBE_BLE1_C
 #ifdef __cplusplus
  extern "C" {
 #endif
 
-/* Includes ------------------------------------------------------------------*/
+// Includes
 #include "app_x-cube-ble1.h"
 
 #include "hci.h"
@@ -25,16 +25,13 @@
 #include "sm.h"
 #include "stm32l4xx_hal_tim.h"
 
-/* Private defines -----------------------------------------------------------*/
-/**
- * 1 to send environmental and motion data when pushing the user button
- * 0 to send environmental and motion data automatically (period = 1 sec)
- */
-#define USE_BUTTON 0
+// Private defines
+#define USE_BUTTON 0	// 1 to send environmental and motion data when pushing the user button
+ 	 	 	 	 	 	// 0 to send environmental and motion data automatically (period = 1 sec)
  
-/* Private macros ------------------------------------------------------------*/
+// Private macros
 
-/* Private variables ---------------------------------------------------------*/
+// Private variables
 extern AxesRaw_t x_axes;
 extern AxesRaw_t g_axes;
 extern AxesRaw_t m_axes;
@@ -42,13 +39,13 @@ extern AxesRaw_t q_axes;
 
 extern volatile uint8_t set_connectable;
 extern volatile int     connected;
-/* at startup, suppose the X-NUCLEO-IDB04A1 is used */
+// at startup, suppose the X-NUCLEO-IDB04A1 is used
 uint8_t bnrg_expansion_board = IDB04A1; 
 uint8_t bdaddr[BDADDR_SIZE];
 static volatile uint8_t user_button_init_state = 1;
 static volatile uint8_t user_button_pressed = 0;
 
-/* Private function prototypes -----------------------------------------------*/
+// Private function prototypes
 static void User_Process(void);
 static void User_Init(void);
 static void Set_Random_Environmental_Values(float *data_t, float *data_p);
@@ -58,140 +55,142 @@ static void Set_Random_Address(uint8_t* bdaddr, uint8_t hwVersion, uint16_t fwVe
 
 #if PRINT_CSV_FORMAT
 extern volatile uint32_t ms_counter;
-/**
- * @brief  This function is a utility to print the log time
- *         in the format HH:MM:SS:MSS (DK GUI time format)
- * @param  None
- * @retval None
- */
-void print_csv_time(void){
-  uint32_t ms = HAL_GetTick();
-  PRINT_CSV("%02d:%02d:%02d.%03d", ms/(60*60*1000)%24, ms/(60*1000)%60, (ms/1000)%60, ms%1000);
+
+// This function is a utility to print the log time
+// in the format HH:MM:SS:MSS (DK GUI time format)
+void print_csv_time(void)
+{
+	uint32_t ms = HAL_GetTick();
+	PRINT_CSV("%02d:%02d:%02d.%03d", ms/(60*60*1000)%24, ms/(60*1000)%60, (ms/1000)%60, ms%1000);
 }
 #endif
 
 void MX_BlueNRG_MS_Init(void)
 {
-  /* Initialize the peripherals and the BLE Stack */
-  const char *name = "BlueNRG";    
-  uint16_t service_handle, dev_name_char_handle, appearance_char_handle;
-  
-  uint8_t  hwVersion;
-  uint16_t fwVersion;
-  int ret;  
-  
-  User_Init();
-  
-  /* Get the User Button initial state */
-  user_button_init_state = BSP_PB_GetState(BUTTON_KEY);
-    
-  hci_init(user_notify, NULL);
-  
-  /* get the BlueNRG HW and FW versions */
-  getBlueNRGVersion(&hwVersion, &fwVersion);
-  	
-  /* 
-   * Reset BlueNRG again otherwise we won't
-   * be able to change its MAC address.
-   * aci_hal_write_config_data() must be the first
-   * command after reset otherwise it will fail.
-   */
-  hci_reset(); 
-  HAL_Delay(100);
- 
-  PRINTF("HWver %d\nFWver %d\n", hwVersion, fwVersion);
-  if (hwVersion > 0x30) { /* X-NUCLEO-IDB05A1 expansion board is used */
-    bnrg_expansion_board = IDB05A1;    
-  }
+	// Initialize the peripherals and the BLE Stack
+	const char *name = "BlueNRG";
+	uint16_t service_handle, dev_name_char_handle, appearance_char_handle;
 
-  /*
-  * Change the MAC address to avoid issues with Android
-  * cache if different boards have the same MAC address
-  */
-  Set_Random_Address(bdaddr, hwVersion, fwVersion);
-  
-  ret = aci_hal_write_config_data(CONFIG_DATA_PUBADDR_OFFSET,
-                                  CONFIG_DATA_PUBADDR_LEN,
-                                  bdaddr);
-  if (ret) {
-    PRINTF("Setting BD_ADDR failed.\n");
-  }
-  
-  /* GATT Init */
-  ret = aci_gatt_init();    
-  if(ret){
-    PRINTF("GATT_Init failed.\n");
-  }
+	uint8_t  hwVersion;
+	uint16_t fwVersion;
+	int ret;
 
-  /* GAP Init */
-  if (bnrg_expansion_board == IDB05A1) {
-    ret = aci_gap_init_IDB05A1(GAP_PERIPHERAL_ROLE_IDB05A1, 0, 0x07, &service_handle, &dev_name_char_handle, &appearance_char_handle);
-  }
-  else {
-    ret = aci_gap_init_IDB04A1(GAP_PERIPHERAL_ROLE_IDB04A1, &service_handle, &dev_name_char_handle, &appearance_char_handle);
-  }
-  if (ret != BLE_STATUS_SUCCESS) {
-    PRINTF("GAP_Init failed.\n");
-  }
+	User_Init();
 
-  /* Update device name */
-  ret = aci_gatt_update_char_value(service_handle, dev_name_char_handle, 0,
-                                   strlen(name), (uint8_t *)name);
-  if (ret) {
-    PRINTF("aci_gatt_update_char_value failed.\n");            
-    while(1);
-  }
-  
-  ret = aci_gap_set_auth_requirement(MITM_PROTECTION_REQUIRED,
-                                     OOB_AUTH_DATA_ABSENT,
-                                     NULL,
-                                     7,
-                                     16,
-                                     USE_FIXED_PIN_FOR_PAIRING,
-                                     123456,
-                                     BONDING);
-  if (ret) {
-    PRINTF("aci_gap_set_authentication_requirement failed.\n");
-    while(1);
-  }
-  
-  PRINTF("BLE Stack Initialized\n");
-  
-  ret = Add_HWServW2ST_Service();
-  if(ret == BLE_STATUS_SUCCESS) {
-    PRINTF("BlueMS HW service added successfully.\n");
-  } else {
-    PRINTF("Error while adding BlueMS HW service: 0x%02x\r\n", ret);
-    while(1);
-  }
-  
-  ret = Add_SWServW2ST_Service();
-  if(ret == BLE_STATUS_SUCCESS) {
-     PRINTF("BlueMS SW service added successfully.\n");
-  } else {
-     PRINTF("Error while adding BlueMS HW service: 0x%02x\r\n", ret);
-     while(1);
-  }
+	// Get the User Button initial state
+	user_button_init_state = BSP_PB_GetState(BUTTON_KEY);
 
-  /* Set output power level */
-  ret = aci_hal_set_tx_power_level(1,4);
+	hci_init(user_notify, NULL);
+
+	// Get the BlueNRG HW and FW versions
+	getBlueNRGVersion(&hwVersion, &fwVersion);
+
+	// Reset BlueNRG again otherwise we won't
+	// be able to change its MAC address.
+	// aci_hal_write_config_data() must be the first
+	// command after reset otherwise it will fail.
+	hci_reset();
+	HAL_Delay(100);
+
+	PRINTF("HWver %d\nFWver %d\n", hwVersion, fwVersion);
+	if (hwVersion > 0x30)
+	{
+		// X-NUCLEO-IDB05A1 expansion board is used
+		bnrg_expansion_board = IDB05A1;
+	}
+
+	// Change the MAC address to avoid issues with Android
+	// cache if different boards have the same MAC address
+	Set_Random_Address(bdaddr, hwVersion, fwVersion);
+
+	ret = aci_hal_write_config_data(CONFIG_DATA_PUBADDR_OFFSET,
+								  CONFIG_DATA_PUBADDR_LEN,
+								  bdaddr);
+	if (ret)
+	{
+		PRINTF("Setting BD_ADDR failed.\n");
+	}
+
+	// SGATT Init
+	ret = aci_gatt_init();
+	if(ret)S
+	{
+		PRINTF("GATT_Init failed.\n");
+	}
+
+	// GAP Init
+	if (bnrg_expansion_board == IDB05A1)
+	{
+		ret = aci_gap_init_IDB05A1(GAP_PERIPHERAL_ROLE_IDB05A1, 0, 0x07, &service_handle, &dev_name_char_handle, &appearance_char_handle);
+	}
+	else
+	{
+		ret = aci_gap_init_IDB04A1(GAP_PERIPHERAL_ROLE_IDB04A1, &service_handle, &dev_name_char_handle, &appearance_char_handle);
+	}
+	if (ret != BLE_STATUS_SUCCESS)
+	{
+		PRINTF("GAP_Init failed.\n");
+	}
+
+	// Update device name
+	ret = aci_gatt_update_char_value(service_handle, dev_name_char_handle, 0,
+								   strlen(name), (uint8_t *)name);
+	if (ret)
+	{
+		PRINTF("aci_gatt_update_char_value failed.\n");
+		while(1);
+	}
+
+	ret = aci_gap_set_auth_requirement(MITM_PROTECTION_REQUIRED,
+									 OOB_AUTH_DATA_ABSENT,
+									 NULL,
+									 7,
+									 16,
+									 USE_FIXED_PIN_FOR_PAIRING,
+									 123456,
+									 BONDING);
+	if (ret)
+	{
+		PRINTF("aci_gap_set_authentication_requirement failed.\n");
+		while(1);
+	}
+
+	PRINTF("BLE Stack Initialized\n");
+
+	ret = Add_HWServW2ST_Service();
+	if (ret == BLE_STATUS_SUCCESS)
+	{
+		PRINTF("BlueMS HW service added successfully.\n");
+	}
+	else
+	{
+		PRINTF("Error while adding BlueMS HW service: 0x%02x\r\n", ret);
+		while(1);
+	}
+
+	ret = Add_SWServW2ST_Service();
+	if (ret == BLE_STATUS_SUCCESS)
+	{
+		PRINTF("BlueMS SW service added successfully.\n");
+	}
+	else
+	{
+		 PRINTF("Error while adding BlueMS HW service: 0x%02x\r\n", ret);
+		 while(1);
+	}
+
+	// Set output power level
+	ret = aci_hal_set_tx_power_level(1,4);
 }
 
-/*
- * BlueNRG-MS background task
- */
+// BlueNRG-MS background task
 void MX_BlueNRG_MS_Process(void)
 {
   User_Process();  
   hci_user_evt_proc();
 }
 
-/**
- * @brief  Initialize User process.
- *
- * @param  None
- * @retval None
- */
+// Initialize User process.
 static void User_Init(void)
 {
   BSP_PB_Init(BUTTON_KEY, BUTTON_MODE_EXTI);
@@ -200,13 +199,8 @@ static void User_Init(void)
   BSP_COM_Init(COM1);
 }
 
-/**
- * @brief  Process user input (i.e. pressing the USER button on Nucleo board)
- *         and send the updated acceleration data to the remote client.
- *
- * @param  None
- * @retval None
- */
+// Process user input (i.e. pressing the USER button on Nucleo board)
+// and send the updated acceleration data to the remote client.
 static void User_Process(void)
 {
   float data_t;
@@ -220,45 +214,46 @@ static void User_Process(void)
   }  
 
 #if USE_BUTTON  
-  /* Check if the user has pushed the button */    
+  // Check if the user has pushed the button
   if (user_button_pressed) 
   {
-    /* Debouncing */
+    // Debouncing
     HAL_Delay(50);
     
-    /* Wait until the User Button is released */
+    // Wait until the User Button is released
     while (BSP_PB_GetState(BUTTON_KEY) == !user_button_init_state);
     
-    /* Debouncing */
+    // Debouncing
     HAL_Delay(50);
 #endif
     BSP_LED_Toggle(LED2);
     
     if (connected)
     {
-      /* Set a random seed */
+      // Set a random seed
       srand(HAL_GetTick());
 	  
-      /* Update emulated Environmental data */
+      // Update emulated Environmental data
       Set_Random_Environmental_Values(&data_t, &data_p);
       BlueMS_Environmental_Update((int32_t)(data_p *100), (int16_t)(data_t * 10));
 	              
-      /* Update emulated Acceleration, Gyroscope and Sensor Fusion data */
+      // Update emulated Acceleration, Gyroscope and Sensor Fusion data
       Set_Random_Motion_Values(counter);
       Acc_Update(&x_axes, &g_axes, &m_axes);      
       Quat_Update(&q_axes);
       
       counter ++;
-      if (counter == 40) {
+      if (counter == 40)
+      {
         counter = 0;
         Reset_Motion_Values();
       }
 #if !USE_BUTTON      
-      HAL_Delay(1000); /* wait 1 sec before sending new data */
+      HAL_Delay(1000); // wait 1 sec before sending new data
 #endif
     }
 #if USE_BUTTON
-    /* Reset the User Button flag */
+    // Reset the User Button flag
     user_button_pressed = 0;
   }
 #endif  
@@ -283,8 +278,9 @@ static void Set_Random_Environmental_Values(float *data_t, float *data_p)
  */
 static void Set_Random_Motion_Values(uint32_t cnt)
 { 
-  /* Update Acceleration, Gyroscope and Sensor Fusion data */
-  if (cnt < 20) {
+  // Update Acceleration, Gyroscope and Sensor Fusion data
+  if (cnt < 20)
+  {
     x_axes.AXIS_X +=  (10  + ((uint64_t)rand()*3*cnt)/RAND_MAX);
     x_axes.AXIS_Y += -(10  + ((uint64_t)rand()*5*cnt)/RAND_MAX);
     x_axes.AXIS_Z +=  (10  + ((uint64_t)rand()*7*cnt)/RAND_MAX);
@@ -299,7 +295,8 @@ static void Set_Random_Motion_Values(uint32_t cnt)
     q_axes.AXIS_Y += (100  + ((uint64_t)rand()*5*cnt)/RAND_MAX);
     q_axes.AXIS_Z -= (100  + ((uint64_t)rand()*7*cnt)/RAND_MAX);
   }
-  else {
+  else
+  {
     x_axes.AXIS_X += -(10  + ((uint64_t)rand()*3*cnt)/RAND_MAX);
     x_axes.AXIS_Y +=  (10  + ((uint64_t)rand()*5*cnt)/RAND_MAX);
     x_axes.AXIS_Z += -(10  + ((uint64_t)rand()*7*cnt)/RAND_MAX);
@@ -317,11 +314,7 @@ static void Set_Random_Motion_Values(uint32_t cnt)
   
 }
 
-/**
- * @brief  Reset values for all motion sensor data
- * @param  None
- * @retval None
- */
+// Reset values for all motion sensor data
 static void Reset_Motion_Values(void)
 {
   x_axes.AXIS_X = (x_axes.AXIS_X)%2000 == 0 ? -x_axes.AXIS_X : 10;
@@ -349,7 +342,7 @@ static void Set_Random_Address(uint8_t* bdaddr, uint8_t hwVersion, uint16_t fwVe
 {  
   uint8_t i;
   
-  /* Initialize a random seed */
+  // Initialize a random seed
   srand (HAL_GetTick() + hwVersion + fwVersion);
   
   for (i=0; i<5; i++) {
