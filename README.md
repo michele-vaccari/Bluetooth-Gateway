@@ -16,7 +16,7 @@ Per la realizzazione del progetto è necessario disporre di:
 ## Come iniziare
 
 Per configurare i vari componenti seguire le guide seguenti:
-* [Configurazione account Google](Doc/Configurazione-account-Google.md)
+* [Configurazione Google Drive e Google Sheets](Doc/Configurazione-Google-Drive-e-Google-Sheets.md)
 * [Configurazione Raspberry Pi 3 Model B+](Doc/Configurazione-Raspberry-Pi.md)
 * Configurazione NUCLEO-L452RE + X-NUCLEO-IDB05A1
 
