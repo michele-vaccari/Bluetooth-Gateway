@@ -1,6 +1,9 @@
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import time
+import sys
+
+temperature = sys.argv[1]
 
 scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
 
@@ -8,10 +11,10 @@ credentials = ServiceAccountCredentials.from_json_keyfile_name('credentials.json
 
 client = gspread.authorize(credentials)
 
-sheet = client.open("iot_testing").worksheets()
+sheet = client.open("SensorData").worksheets()
 
 for ii in sheet:
-  print(ii.title)
-  curr_time = time.localtime()
-  time_str = time.strftime("%m/%d/%Y %H:%M:%S",curr_time)
-  ii.append_row([time_str,22,50])
+  currentTime = time.localtime()
+  timeToString = time.strftime("%m/%d/%Y %H:%M:%S", currentTime)
+  ii.append_row([timeToString,temperature])
+  print('sent the following data: ', timeToString, temperature)
