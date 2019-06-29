@@ -21,24 +21,19 @@ from subprocess import call
 
 # CONSTANTS
 
-# Presentation message.
-INTRO = """#####################
+PRESENTATION_MESSAGE = """#####################
 # Bluetooth Gateway #
 #####################"""
 
-# Bluetooth Scanning time in seconds.
-SCANNING_TIME_s = 5
+SCANNING_TIME_IN_SECONDS = 5
 
 # Number of notifications to get before disabling them.
 NOTIFICATIONS = 10
 
 # FUNCTIONS
 
-#
-# Printing intro.
-#
-def print_intro():
-    print('\n' + INTRO + '\n')
+def printPresentationMessage():
+    print('\n' + PRESENTATION_MESSAGE + '\n')
 
 # INTERFACES
 
@@ -107,14 +102,9 @@ class MyFeatureListener(FeatureListener):
 
 
 # MAIN APPLICATION
-
-#
-# Main application.
-#
 def main(argv):
 
-    # Printing intro.
-    print_intro()
+    printPresentationMessage()
 
     try:
         # Creating Bluetooth Manager.
@@ -125,7 +115,7 @@ def main(argv):
         while True:
             # Synchronous discovery of Bluetooth devices.
             print('Scanning Bluetooth devices...\n')
-            manager.discover(SCANNING_TIME_s)
+            manager.discover(SCANNING_TIME_IN_SECONDS)
 
             # Getting discovered devices.
             discovered_devices = manager.get_nodes()
@@ -166,23 +156,15 @@ def main(argv):
                 print('\nFeatures:')
                 i = 1
                 features = device.get_features()
-                
-                audioFeature = None
-                audioSyncFeature = None
 
                 for feature in features:
-                    if not feature.get_name() == FeatureAudioADPCMSync.FEATURE_NAME:
-                        if feature.get_name() == FeatureAudioADPCM.FEATURE_NAME:
-                            audioFeature = feature
-                            print('%d,%d) %s' % (i,i+1, "Audio & Sync"))
-                        else:
-                            if feature.get_name() == "Temperature":
-                              print("Temperature feature found")
-                              # exit_code = call("python3 sendsTemperatureAndHumidityToGoogleSpreadsheets.py", shell=True)
-                            print('%d) %s' % (i, feature.get_name()))
-                        i+=1
-                    else:
-                        audioSyncFeature = feature
+                  if feature.get_name() == "Temperature":
+                    print("Temperature feature found")
+                    # exit_code = call("python3 sendsTemperatureAndHumidityToGoogleSpreadsheets.py", shell=True)
+                  else:
+                    print('%d) %s' % (i, feature.get_name()))
+                  i+=1
+
                 # Selecting a feature.
                 while True:
                     choice = int(input('\nSelect a feature '
@@ -206,15 +188,6 @@ def main(argv):
                 feature.add_listener(feature_listener)
                 device.enable_notifications(feature)
                 
-                if feature.get_name() == FeatureAudioADPCM.FEATURE_NAME:
-                    audioSyncFeature_listener = MyFeatureListener()
-                    audioSyncFeature.add_listener(audioSyncFeature_listener)
-                    device.enable_notifications(audioSyncFeature)
-                elif feature.get_name() == FeatureAudioADPCMSync.FEATURE_NAME:
-                    audioFeature_listener = MyFeatureListener()
-                    audioFeature.add_listener(audioFeature_listener)
-                    device.enable_notifications(audioFeature)
-                
                 # Getting notifications.
                 n = 0
                 while n < NOTIFICATIONS:
@@ -224,13 +197,6 @@ def main(argv):
                 # Disabling notifications.
                 device.disable_notifications(feature)
                 feature.remove_listener(feature_listener)
-                
-                if feature.get_name() == FeatureAudioADPCM.FEATURE_NAME:
-                    device.disable_notifications(audioSyncFeature)
-                    audioSyncFeature.remove_listener(audioSyncFeature_listener)
-                elif feature.get_name() == FeatureAudioADPCMSync.FEATURE_NAME:
-                    device.disable_notifications(audioFeature)
-                    audioFeature.remove_listener(audioFeature_listener)
 
     except BTLEException as e:
         print(e)
