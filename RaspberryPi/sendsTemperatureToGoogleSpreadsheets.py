@@ -16,5 +16,5 @@ sheet = client.open("SensorData").worksheets()
 for ii in sheet:
   currentTime = time.localtime()
   timeToString = time.strftime("%m/%d/%Y %H:%M:%S", currentTime)
-  ii.append_row([timeToString,temperature])
-  print('sent the following data: ', timeToString, temperature)
+  ii.append_row([timeToString,float(temperature)])
+  print('sent the following data: ', timeToString, float(temperature))
