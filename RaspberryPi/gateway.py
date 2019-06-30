@@ -14,7 +14,8 @@ from blue_st_sdk.node import NodeListener
 from blue_st_sdk.feature import FeatureListener
 from blue_st_sdk.features.feature_temperature import FeatureTemperature
 
-from subprocess import call
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
 # CONSTANTS
 PRESENTATION_MESSAGE = """#####################
@@ -29,15 +30,6 @@ NOTIFICATIONS = 10
 # FUNCTIONS
 def printPresentationMessage():
     print('\n' + PRESENTATION_MESSAGE + '\n')
-
-def disconnectingDevice(device, node_listener, manager):
-    # Disconnecting from the device.
-    print('\nDisconnecting from %s...' % (device.get_name()))
-    device.disconnect()
-    print('Disconnection done.')
-    device.remove_listener(node_listener)
-    # Reset discovery.
-    manager.reset_discovery()
 
 # INTERFACES
 
@@ -92,7 +84,11 @@ class MyNodeListener(NodeListener):
 #
 class MyFeatureListener(FeatureListener):
 
-    num = 0
+    scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
+    credentials = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
+    client = gspread.authorize(credentials)
+    sheet = client.open("SensorData").worksheets()
+    
     #
     # To be called whenever the feature updates its data.
     #
@@ -100,10 +96,13 @@ class MyFeatureListener(FeatureListener):
     # @param sample  Data extracted from the feature.
     #
     def on_update(self, feature, sample):
-        if(self.num < NOTIFICATIONS):
-            call("python3 sendsTemperatureToGoogleSpreadsheets.py 12.0", shell=True)
-            print(feature)
-            self.num += 1
+        print(feature)
+        temperature = 27.0
+        for ii in self.sheet:
+          currentTime = time.localtime()
+          timeToString = time.strftime("%m/%d/%Y %H:%M:%S", currentTime)
+          ii.append_row([timeToString,float(temperature)])
+          print('sent the following data: ', timeToString, float(temperature))
 
 
 # MAIN APPLICATION
@@ -169,7 +168,13 @@ def main(argv):
             
             if temperatureIndex is None:
               print("No temperature feature found")
-              disconnectingDevice(device, node_listener, manager)
+              # Disconnecting from the device.
+              print('\nDisconnecting from %s...' % (device.get_name()))
+              device.disconnect()
+              print('Disconnection done.')
+              device.remove_listener(node_listener)
+              # Reset discovery.
+              manager.reset_discovery()
               # Going back to the list of devices.
               break
 
@@ -181,21 +186,9 @@ def main(argv):
             device.enable_notifications(temperatureFeature)
 
             # Getting notifications.
-            while True:  # making a loop
-              try:  # used try so that if user pressed other than the given key error will not be shown
-                if keyboard.is_pressed('q'):  # if key 'q' is pressed 
-                  print('You Pressed q Key!')
-
-                  # Disabling notifications.
-                  device.disable_notifications(temperatureFeature)
-                  feature.remove_listener(feature_listener)
-                  disconnectingDevice(device, node_listener, manager)
-
-                  break  # finishing the loop
-                else:
-                  device.wait_for_notifications(0.05)
-              except:
-                break  # if user pressed a key other than the given key the loop will break
+            print('Start getting temperature notifications...')
+            while True:
+              device.wait_for_notifications(0.05)
 
     except BTLEException as e:
         print(e)
