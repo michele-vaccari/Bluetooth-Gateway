@@ -181,8 +181,21 @@ def main(argv):
             device.enable_notifications(temperatureFeature)
 
             # Getting notifications.
-            while True:
-              device.wait_for_notifications(0.05)
+            while True:  # making a loop
+              try:  # used try so that if user pressed other than the given key error will not be shown
+                if keyboard.is_pressed('q'):  # if key 'q' is pressed 
+                  print('You Pressed q Key!')
+
+                  # Disabling notifications.
+                  device.disable_notifications(temperatureFeature)
+                  feature.remove_listener(feature_listener)
+                  disconnectingDevice(device, node_listener, manager)
+
+                  break  # finishing the loop
+                else:
+                  device.wait_for_notifications(0.05)
+              except:
+                break  # if user pressed a key other than the given key the loop will break
 
     except BTLEException as e:
         print(e)
@@ -191,12 +204,6 @@ def main(argv):
         sys.exit(0)
     except KeyboardInterrupt:
         try:
-            # Disabling notifications.
-            device.disable_notifications(temperatureFeature)
-            feature.remove_listener(feature_listener)
-
-            disconnectingDevice(device, node_listener, manager)
-
             # Exiting.
             print('\nExiting...\n')
             sys.exit(0)
