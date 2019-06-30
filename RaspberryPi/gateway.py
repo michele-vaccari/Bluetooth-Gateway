@@ -96,13 +96,12 @@ class MyFeatureListener(FeatureListener):
     # @param sample  Data extracted from the feature.
     #
     def on_update(self, feature, sample):
-        print(feature)
-        temperature = 27.0
+        temperature = FeatureTemperature.get_temperature(sample)
         for ii in self.sheet:
           currentTime = time.localtime()
           timeToString = time.strftime("%m/%d/%Y %H:%M:%S", currentTime)
           ii.append_row([timeToString,float(temperature)])
-          print('sent the following data: ', timeToString, float(temperature))
+          print('Sent the following data: ', timeToString, float(temperature))
 
 
 # MAIN APPLICATION
@@ -158,12 +157,13 @@ def main(argv):
             # Getting features.
             i = 0
             features = device.get_features()
+            temperatureIndex = None
 
             for feature in features:
+              print(feature.get_name())
               if feature.get_name() == FeatureTemperature.FEATURE_NAME:
-                print("Temperature feature found")
+                print("Temperature feature found\n")
                 temperatureIndex = i
-                break
               i+=1
             
             if temperatureIndex is None:
@@ -186,7 +186,7 @@ def main(argv):
             device.enable_notifications(temperatureFeature)
 
             # Getting notifications.
-            print('Start getting temperature notifications...')
+            print('Start getting temperature notifications\n')
             while True:
               device.wait_for_notifications(0.05)
 
