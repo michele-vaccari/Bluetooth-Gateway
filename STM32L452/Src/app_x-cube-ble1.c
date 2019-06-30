@@ -140,28 +140,6 @@ void MX_BlueNRG_MS_Init(void)
 		while(1);
 	}
 
-
-	#define  ADV_INTERVAL_MIN_MS  800
-	#define  ADV_INTERVAL_MAX_MS  900
-	#define  CONN_INTERVAL_MIN_MS 100
-	#define  CONN_INTERVAL_MAX_MS 300
-	const char local_name[] = {AD_TYPE_COMPLETE_LOCAL_NAME,'G','a','t','e','w','a','y'};
-	const uint8_t serviceUUIDList[] = {AD_TYPE_16_BIT_SERV_UUID,0x34,0x12};
-
-	// Put the Device in general discoverable mode (as defined in GAP specification volume 3, section 9.2.4).
-	ret = aci_gap_set_discoverable(ADV_IND, (ADV_INTERVAL_MIN_MS*1000)/625,
-								   (ADV_INTERVAL_MAX_MS*1000)/625,
-								   STATIC_RANDOM_ADDR, NO_WHITE_LIST_USE,
-								   sizeof(local_name), local_name,
-								   0, NULL,
-								   (CONN_INTERVAL_MIN_MS*1000)/1250,
-								   (CONN_INTERVAL_MAX_MS*1000)/1250);
-	if (ret)
-	{
-		PRINTF("aci_gap_set_discoverable failed.\n\r");
-		while(1);
-	}
-
 	ret = aci_gap_set_auth_requirement(MITM_PROTECTION_REQUIRED,
 									   OOB_AUTH_DATA_ABSENT,
 									   NULL,
