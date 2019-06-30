@@ -65,15 +65,15 @@ void GAP_ConnectionComplete_CB(uint8_t addr[6], uint16_t handle);
 void Set_DeviceConnectable(void)
 {  
   uint8_t ret;
-  const char local_name[] = {AD_TYPE_COMPLETE_LOCAL_NAME,SENSOR_DEMO_NAME}; 
+  const char local_name[] = {AD_TYPE_COMPLETE_LOCAL_NAME,SENSOR_ADVERTISING_NAME};
     
   uint8_t manuf_data[26] = {
     2,0x0A,0x00, /* 0 dBm */  // Trasmission Power
-    8,0x09,SENSOR_DEMO_NAME,  // Complete Name
+    8,0x09,SENSOR_ADVERTISING_NAME,  // Complete Name
     13,0xFF,0x01, /* SKD version */
     0x02,
     0x00,
-    0xF4, /* ACC+Gyro+Mag 0xE0 | 0x04 Temp | 0x10 Pressure */
+	0x04, /* 0x04 Temp */
     0x00, /*  */
     0x00, /*  */
     bdaddr[0], /* BLE MAC start */

@@ -1,18 +1,3 @@
-/******************** (C) COPYRIGHT 2015 STMicroelectronics ********************
-* File Name          : gatt_db.c
-* Author             : 
-* Version            : V1.0.0
-* Date               : 16-September-2015
-* Description        : Functions to build GATT DB and handle GATT events.
-********************************************************************************
-* THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
-* WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME.
-* AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY DIRECT,
-* INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING FROM THE
-* CONTENT OF SUCH FIRMWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING
-* INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
-*******************************************************************************/
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -62,7 +47,7 @@ extern uint16_t connection_handle;
 extern uint32_t start_time;
  
 /**
- * @brief  Add the 'HW' service (and the Environmental and AccGyr characteristics).
+ * @brief  Add the 'HW' service
  * @param  None
  * @retval tBleStatus Status
  */
@@ -70,19 +55,18 @@ tBleStatus Add_HWServW2ST_Service(void)
 {
   tBleStatus ret;
   uint8_t uuid[16];
-  
-  /* Add_HWServW2ST_Service */
+
+  // Add_HWServW2ST_Service
   COPY_HW_SENS_W2ST_SERVICE_UUID(uuid);  
   BLUENRG_memcpy(&service_uuid.Service_UUID_128, uuid, 16);
   ret = aci_gatt_add_serv(UUID_TYPE_128, service_uuid.Service_UUID_128, PRIMARY_SERVICE, 
                           1+3*5, &HWServW2STHandle); 
   if (ret != BLE_STATUS_SUCCESS) 
     return BLE_STATUS_ERROR;    
-  
-  /* Fill the Environmental BLE Characteristc */
+
+  // Fill the Environmental BLE Characteristc
   COPY_ENVIRONMENTAL_W2ST_CHAR_UUID(uuid);
-  uuid[14] |= 0x04; /* One Temperature value*/
-  uuid[14] |= 0x10; /* Pressure value*/
+  uuid[14] |= 0x04; // One Temperature value
   BLUENRG_memcpy(&char_uuid.Char_UUID_128, uuid, 16);  
   ret =  aci_gatt_add_char(HWServW2STHandle, UUID_TYPE_128, char_uuid.Char_UUID_128, 
                            2+2+4, 
@@ -92,21 +76,6 @@ tBleStatus Add_HWServW2ST_Service(void)
                            16, 0, &EnvironmentalCharHandle);
   if (ret != BLE_STATUS_SUCCESS) 
     return BLE_STATUS_ERROR;
-  
-  
-  /* Fill the AccGyroMag BLE Characteristc */
-  COPY_ACC_GYRO_MAG_W2ST_CHAR_UUID(uuid);
-  BLUENRG_memcpy(&char_uuid.Char_UUID_128, uuid, 16);  
-  ret =  aci_gatt_add_char(HWServW2STHandle, UUID_TYPE_128, char_uuid.Char_UUID_128, 
-                           2+3*3*2, 
-                           CHAR_PROP_NOTIFY, 
-                           ATTR_PERMISSION_NONE, 
-                           GATT_NOTIFY_READ_REQ_AND_WAIT_FOR_APPL_RESP,
-                           16, 0, &AccGyroMagCharHandle);
-  if (ret != BLE_STATUS_SUCCESS) 
-    return BLE_STATUS_ERROR;
-  
-  return BLE_STATUS_SUCCESS;
 }
 
 /**
@@ -148,90 +117,6 @@ fail:
   return BLE_STATUS_ERROR;
 }
 
-/**
- * @brief  Update acceleration characteristic value
- * @param  AxesRaw_t structure containing acceleration value in mg.
- * @retval tBleStatus Status
- */
-tBleStatus Acc_Update(AxesRaw_t *x_axes, AxesRaw_t *g_axes, AxesRaw_t *m_axes)
-{  
-  uint8_t buff[2+2*3*3];
-  tBleStatus ret;
-  
-  HOST_TO_LE_16(buff,(HAL_GetTick()>>3));
-  
-  HOST_TO_LE_16(buff+2,-x_axes->AXIS_Y);
-  HOST_TO_LE_16(buff+4, x_axes->AXIS_X);
-  HOST_TO_LE_16(buff+6,-x_axes->AXIS_Z);
-    
-  HOST_TO_LE_16(buff+8,g_axes->AXIS_Y);
-  HOST_TO_LE_16(buff+10,g_axes->AXIS_X);
-  HOST_TO_LE_16(buff+12,g_axes->AXIS_Z);
-  
-  HOST_TO_LE_16(buff+14,m_axes->AXIS_Y);
-  HOST_TO_LE_16(buff+16,m_axes->AXIS_X);
-  HOST_TO_LE_16(buff+18,m_axes->AXIS_Z);
-    
-  ret = aci_gatt_update_char_value(HWServW2STHandle, AccGyroMagCharHandle,
-				   0, 2+2*3*3, buff);
-  if (ret != BLE_STATUS_SUCCESS){
-    PRINTF("Error while updating Acceleration characteristic: 0x%02X\n",ret) ;
-    return BLE_STATUS_ERROR ;
-  }
-
-  return BLE_STATUS_SUCCESS;  
-}
-
-/**
- * @brief  Update quaternions characteristic value
- * @param  SensorAxes_t *data Structure containing the quaterions
- * @retval tBleStatus      Status
- */
-tBleStatus Quat_Update(AxesRaw_t *data)
-{
-  tBleStatus ret;
-  uint8_t buff[2+6*SEND_N_QUATERNIONS];
-
-  HOST_TO_LE_16(buff,(HAL_GetTick()>>3));
-
-#if SEND_N_QUATERNIONS == 1
-  HOST_TO_LE_16(buff+2,data[0].AXIS_X);
-  HOST_TO_LE_16(buff+4,data[0].AXIS_Y);
-  HOST_TO_LE_16(buff+6,data[0].AXIS_Z);
-#elif SEND_N_QUATERNIONS == 2
-  HOST_TO_LE_16(buff+2,data[0].AXIS_X);
-  HOST_TO_LE_16(buff+4,data[0].AXIS_Y);
-  HOST_TO_LE_16(buff+6,data[0].AXIS_Z);
-
-  HOST_TO_LE_16(buff+8 ,data[1].AXIS_X);
-  HOST_TO_LE_16(buff+10,data[1].AXIS_Y);
-  HOST_TO_LE_16(buff+12,data[1].AXIS_Z);
-#elif SEND_N_QUATERNIONS == 3
-  HOST_TO_LE_16(buff+2,data[0].AXIS_X);
-  HOST_TO_LE_16(buff+4,data[0].AXIS_Y);
-  HOST_TO_LE_16(buff+6,data[0].AXIS_Z);
-
-  HOST_TO_LE_16(buff+8 ,data[1].AXIS_X);
-  HOST_TO_LE_16(buff+10,data[1].AXIS_Y);
-  HOST_TO_LE_16(buff+12,data[1].AXIS_Z);
-
-  HOST_TO_LE_16(buff+14,data[2].AXIS_X);
-  HOST_TO_LE_16(buff+16,data[2].AXIS_Y);
-  HOST_TO_LE_16(buff+18,data[2].AXIS_Z);
-#else
-#error SEND_N_QUATERNIONS could be only 1,2,3
-#endif
-  
-  ret = aci_gatt_update_char_value(SWServW2STHandle, QuaternionsCharHandle,
-				   0, 2+6*SEND_N_QUATERNIONS, buff);
-  if (ret != BLE_STATUS_SUCCESS){
-    PRINTF("Error while updating Sensor Fusion characteristic: 0x%02X\n",ret) ;
-    return BLE_STATUS_ERROR ;
-  }
-  
-  return BLE_STATUS_SUCCESS;
-}
-
 /*******************************************************************************
 * Function Name  : Read_Request_CB.
 * Description    : Update the sensor valuse.
@@ -242,11 +127,7 @@ void Read_Request_CB(uint16_t handle)
 {
   tBleStatus ret;
   
-  if(handle == AccGyroMagCharHandle + 1)
-  {    
-    Acc_Update(&x_axes, &g_axes, &m_axes);
-  }
-  else if (handle == EnvironmentalCharHandle + 1)
+  if (handle == EnvironmentalCharHandle + 1)
   {
     float data_t, data_p;
     data_t = 27.0 + ((uint64_t)rand()*5)/RAND_MAX; //T sensor emulation        
@@ -265,23 +146,20 @@ void Read_Request_CB(uint16_t handle)
 }
 
 tBleStatus BlueMS_Environmental_Update(int32_t press, int16_t temp)
-{  
+{
   tBleStatus ret;
   uint8_t buff[8];
   HOST_TO_LE_16(buff, HAL_GetTick()>>3);
-  
-  HOST_TO_LE_32(buff+2,press);
-  HOST_TO_LE_16(buff+6,temp);
-  
+
+  HOST_TO_LE_16(buff+2,temp);
+
   ret = aci_gatt_update_char_value(HWServW2STHandle, EnvironmentalCharHandle, 
                                    0, 8, buff);
-  
+
   if (ret != BLE_STATUS_SUCCESS){
     PRINTF("Error while updating TEMP characteristic: 0x%04X\n",ret) ;
     return BLE_STATUS_ERROR ;
   }
-  
+
   return BLE_STATUS_SUCCESS;	
 }
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
