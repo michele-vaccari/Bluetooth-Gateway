@@ -34,7 +34,7 @@ int main(void)
 	// Initialize all configured peripherals
 	MX_GPIO_Init();
 	MX_I2C3_Init();
-	MX_BlueNRG_MS_Init();
+	MX_BlueNRG_MS_Init(&hi2c3);
 
 	// Infinite loop
 	while (1)

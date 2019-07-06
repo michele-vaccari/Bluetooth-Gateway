@@ -28,14 +28,11 @@
 // Private defines
 #define USE_BUTTON 0	// 1 to send environmental and motion data when pushing the user button
  	 	 	 	 	 	// 0 to send environmental and motion data automatically (period = 1 sec)
- 
+
 // Private macros
 
 // Private variables
-extern AxesRaw_t x_axes;
-extern AxesRaw_t g_axes;
-extern AxesRaw_t m_axes;
-extern AxesRaw_t q_axes;
+I2C_HandleTypeDef hi2c3;
 
 extern volatile uint8_t set_connectable;
 extern volatile int     connected;
@@ -50,6 +47,7 @@ static void User_Process(void);
 static void User_Init(void);
 static void Set_Random_Environmental_Values(float *data_t, float *data_h);
 static void SetRandomBleMacAddress(uint8_t* bleMacAddress, uint8_t hardwareVersion, uint16_t firmwareVersion);
+void ReadTemperatureAndHumidityFromSensor(float *temperature, float *humidity);
 
 #if PRINT_CSV_FORMAT
 extern volatile uint32_t ms_counter;
@@ -63,8 +61,10 @@ void print_csv_time(void)
 }
 #endif
 
-void MX_BlueNRG_MS_Init(void)
+void MX_BlueNRG_MS_Init(I2C_HandleTypeDef *hi2c)
 {
+	hi2c3 = *hi2c;
+
 	// Initialize the peripherals and the BLE Stack
 	User_Init();
 
@@ -183,8 +183,8 @@ void MX_BlueNRG_MS_Init(void)
 // BlueNRG-MS background task
 void MX_BlueNRG_MS_Process(void)
 {
-  User_Process();  
-  hci_user_evt_proc();
+	User_Process();
+	hci_user_evt_proc();
 }
 
 // Initialize User process.
@@ -201,7 +201,7 @@ static void User_Init(void)
 static void User_Process(void)
 {
 	float data_t;
-	float data_p;
+	float data_h;
 	static uint32_t counter = 0;
 
 	if (set_connectable)
@@ -210,15 +210,15 @@ static void User_Process(void)
 		set_connectable = FALSE;
 	}
 	BSP_LED_Toggle(LED2);
-  
+
 	if (connected)
 	{
-	  // Set a random seed
-	  srand(HAL_GetTick());
+	  if (HAL_I2C_IsDeviceReady(&hi2c3, 0xB8, 2, 10) == HAL_OK)
+	  {
+		  ReadTemperatureAndHumidityFromSensor(&data_t, &data_h);
+	  }
 
-	  // Update emulated Environmental data
-	  Set_Random_Environmental_Values(&data_t, &data_p);
-	  BlueMS_Environmental_Update((int16_t)(data_p *10), (int16_t)(data_t * 10));
+	  BlueMS_Environmental_Update((int16_t)(data_h *10), (int16_t)(data_t * 10));
 
 	  counter ++;
 	  if (counter == 40)
@@ -228,6 +228,31 @@ static void User_Process(void)
 	  }
 	  HAL_Delay(3000); // wait 3 sec before sending new data
 	}
+}
+
+void ReadTemperatureAndHumidityFromSensor(float *temperature, float *humidity)
+{
+	uint8_t i2cData[8];
+	unsigned int t;
+	unsigned int h;
+
+	//Transmit via I2C
+	i2cData[0] = 0x03;
+	i2cData[1] = 0x00;
+	i2cData[2] = 0x04;
+	HAL_I2C_Master_Transmit(&hi2c3, 0xB8, i2cData, 8, 10);
+
+	//Read via I2C
+	HAL_I2C_Master_Receive(&hi2c3, 0xB9, &i2cData, 8, 10);
+
+	// Read temperature
+	t = ((i2cData[4] & 0x7F) << 8) + i2cData[5];
+	*temperature = t / 10.0;
+	if (((i2cData[4] & 0x80) >> 7) == 1)
+		*temperature *= -1; // the temperature can be negative
+
+	h = (i2cData[2] << 8) + i2cData[3];
+	*humidity = h / 10.0;
 }
 
 /**
