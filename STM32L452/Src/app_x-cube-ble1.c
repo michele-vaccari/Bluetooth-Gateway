@@ -45,7 +45,6 @@ static volatile uint8_t user_button_pressed = 0;
 // Private function prototypes
 static void User_Process(void);
 static void User_Init(void);
-static void Set_Random_Environmental_Values(float *data_t, float *data_h);
 static void SetRandomBleMacAddress(uint8_t* bleMacAddress, uint8_t hardwareVersion, uint16_t firmwareVersion);
 void ReadTemperatureAndHumidityFromSensor(float *temperature, float *humidity);
 
@@ -256,18 +255,6 @@ void ReadTemperatureAndHumidityFromSensor(float *temperature, float *humidity)
 }
 
 /**
- * @brief  Set random values for all environmental sensor data
- * @param  float pointer to temperature data
- * @param  float pointer to pressure data
- * @retval None
- */
-static void Set_Random_Environmental_Values(float *data_t, float *data_h)
-{ 
-  *data_t = 27.0 + ((uint64_t)rand()*5)/RAND_MAX;     /* T sensor emulation */
-  *data_h = 50.0 + ((uint64_t)rand()*10)/RAND_MAX; /* H sensor emulation */
-}
-
-/**
  * @brief  Set a random BLE MAC address
  * @param  Pointer to array where to save the BLE MAC address 
  * @param  Hardware version
@@ -301,4 +288,4 @@ void BSP_PB_Callback(Button_TypeDef Button)
 #ifdef __cplusplus
 }
 #endif
-#endif /* __APP_X_CUBE_BLE1_C */
+#endif

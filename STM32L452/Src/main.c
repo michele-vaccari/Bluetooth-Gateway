@@ -2,14 +2,6 @@
 #include "main.h"
 #include "app_x-cube-ble1.h"
 
-// Private include
-
-// Private typedef
-
-// Private define
-
-// Private macro
-
 // Private variables
 I2C_HandleTypeDef hi2c3;
 
@@ -17,8 +9,6 @@ I2C_HandleTypeDef hi2c3;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_I2C3_Init(void);
-
-// Private user code
 
 // The application entry point.
 int main(void)

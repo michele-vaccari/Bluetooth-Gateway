@@ -39,12 +39,7 @@ uint16_t SWServW2STHandle, QuaternionsCharHandle;
 Service_UUID_t service_uuid;
 Char_UUID_t char_uuid;
 
-extern AxesRaw_t x_axes;
-extern AxesRaw_t g_axes;
-extern AxesRaw_t m_axes;
-
 extern uint16_t connection_handle;
-extern uint32_t start_time;
  
 /**
  * @brief  Add the 'HW' service
@@ -77,6 +72,8 @@ tBleStatus Add_HWServW2ST_Service(void)
                            16, 0, &EnvironmentalCharHandle);
   if (ret != BLE_STATUS_SUCCESS) 
     return BLE_STATUS_ERROR;
+
+  return BLE_STATUS_SUCCESS;
 }
 
 /**

@@ -33,14 +33,10 @@
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 extern uint8_t bdaddr[BDADDR_SIZE];
-extern uint8_t bnrg_expansion_board;
 __IO uint8_t set_connectable = 1;
 __IO uint16_t connection_handle = 0;
 __IO uint8_t  notification_enabled = FALSE;
 __IO uint32_t connected = FALSE;
-
-extern uint16_t EnvironmentalCharHandle;
-extern uint16_t AccGyroMagCharHandle;
 
 volatile uint8_t request_free_fall_notify = FALSE; 
 
