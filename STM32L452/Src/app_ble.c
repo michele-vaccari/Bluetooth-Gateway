@@ -1,12 +1,13 @@
 // Define to prevent recursive inclusion
 #ifndef __APP_X_CUBE_BLE1_C
 #define __APP_X_CUBE_BLE1_C
+
 #ifdef __cplusplus
  extern "C" {
 #endif
 
 // Includes
-#include "app_x-cube-ble1.h"
+#include <app_ble.h>
 
 #include "hci.h"
 #include "hci_le.h"

@@ -1,6 +1,6 @@
 // Includes
+#include <app_ble.h>
 #include "main.h"
-#include "app_x-cube-ble1.h"
 
 // Private variables
 I2C_HandleTypeDef hi2c3;
