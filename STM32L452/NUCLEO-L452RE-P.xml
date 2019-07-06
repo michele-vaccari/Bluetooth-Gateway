@@ -12,8 +12,8 @@
 <targetDefinitions>
   <board id="nucleo-l452re-p">
     <name>NUCLEO-L452RE-P</name>
-    <dbgIF>JTAG</dbgIF>
     <dbgIF>SWD</dbgIF>
+    <dbgIF>JTAG</dbgIF>
     <dbgDEV>ST-Link</dbgDEV>
     <mcuId>stm32l452retxp</mcuId>
   </board>
