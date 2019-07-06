@@ -60,7 +60,7 @@ void print_csv_time(void)
 }
 #endif
 
-void MX_BlueNRG_MS_Init(I2C_HandleTypeDef *hi2c)
+void SendsTemperatureAndHumidity_Init(I2C_HandleTypeDef *hi2c)
 {
 	hi2c3 = *hi2c;
 
@@ -180,7 +180,7 @@ void MX_BlueNRG_MS_Init(I2C_HandleTypeDef *hi2c)
 }
 
 // BlueNRG-MS background task
-void MX_BlueNRG_MS_Process(void)
+void SendsTemperatureAndHumidity_Process(void)
 {
 	User_Process();
 	hci_user_evt_proc();

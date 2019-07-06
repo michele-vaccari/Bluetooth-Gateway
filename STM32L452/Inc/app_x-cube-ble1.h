@@ -9,8 +9,8 @@
 #include "stm32l4xx_hal.h"
 
 // Exported Functions
-void MX_BlueNRG_MS_Init(I2C_HandleTypeDef *hi2c);
-void MX_BlueNRG_MS_Process(void);
+void SendsTemperatureAndHumidity_Init(I2C_HandleTypeDef *hi2c);
+void SendsTemperatureAndHumidity_Process(void);
 
 #ifdef __cplusplus
 }
