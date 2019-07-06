@@ -67,6 +67,7 @@ tBleStatus Add_HWServW2ST_Service(void)
   // Fill the Environmental BLE Characteristc
   COPY_ENVIRONMENTAL_W2ST_CHAR_UUID(uuid);
   uuid[14] |= 0x04; // One Temperature value
+  uuid[14] |= 0x08; // Humidity value
   BLUENRG_memcpy(&char_uuid.Char_UUID_128, uuid, 16);  
   ret =  aci_gatt_add_char(HWServW2STHandle, UUID_TYPE_128, char_uuid.Char_UUID_128, 
                            2+2+4, 
@@ -126,13 +127,13 @@ fail:
 void Read_Request_CB(uint16_t handle)
 {
   tBleStatus ret;
-  
+
   if (handle == EnvironmentalCharHandle + 1)
   {
-    float data_t, data_p;
-    data_t = 27.0 + ((uint64_t)rand()*5)/RAND_MAX; //T sensor emulation        
-    data_p = 1000.0 + ((uint64_t)rand()*100)/RAND_MAX; //P sensor emulation        
-    BlueMS_Environmental_Update((int32_t)(data_p *100), (int16_t)(data_t * 10)); 
+    float data_t, data_h;
+    data_t = 27.0 + ((uint64_t)rand()*5)/RAND_MAX; //T sensor emulation
+    data_h = 30.0 + ((uint64_t)rand()*5)/RAND_MAX; //H sensor emulation
+    BlueMS_Environmental_Update((int16_t)(data_h *10), (int16_t)(data_t * 10));
   }
 
   if(connection_handle !=0)
@@ -145,13 +146,14 @@ void Read_Request_CB(uint16_t handle)
   }
 }
 
-tBleStatus BlueMS_Environmental_Update(int32_t press, int16_t temp)
+tBleStatus BlueMS_Environmental_Update(int16_t hum, int16_t temp)
 {
   tBleStatus ret;
   uint8_t buff[8];
   HOST_TO_LE_16(buff, HAL_GetTick()>>3);
 
-  HOST_TO_LE_16(buff+2,temp);
+  HOST_TO_LE_16(buff+2,hum);
+  HOST_TO_LE_16(buff+4,temp);
 
   ret = aci_gatt_update_char_value(HWServW2STHandle, EnvironmentalCharHandle, 
                                    0, 8, buff);

@@ -63,17 +63,17 @@ void GAP_ConnectionComplete_CB(uint8_t addr[6], uint16_t handle);
  * Return         : None.
  *******************************************************************************/
 void Set_DeviceConnectable(void)
-{  
+{
   uint8_t ret;
   const char local_name[] = {AD_TYPE_COMPLETE_LOCAL_NAME,SENSOR_ADVERTISING_NAME};
-    
-  uint8_t manuf_data[26] = {
+
+  uint8_t manuf_data[27] = {
     2,0x0A,0x00, /* 0 dBm */  // Trasmission Power
-    8,0x09,SENSOR_ADVERTISING_NAME,  // Complete Name
+    9,0x09,SENSOR_ADVERTISING_NAME,  // Complete Name
     13,0xFF,0x01, /* SKD version */
     0x02,
     0x00,
-	0x04, /* 0x04 Temp */
+    0x0C, /* 0x04 Temp | 0x08 Humidity */
     0x00, /*  */
     0x00, /*  */
     bdaddr[0], /* BLE MAC start */
@@ -83,20 +83,20 @@ void Set_DeviceConnectable(void)
     bdaddr[4],
     bdaddr[5]  /* BLE MAC stop */
   };
-  
-  manuf_data[18] |= 0x01; /* Sensor Fusion */
-  
+
+  manuf_data[19] |= 0x01; /* Sensor Fusion */
+
   hci_le_set_scan_resp_data(0, NULL);
-  
+
   PRINTF("Set General Discoverable Mode.\n");
-  
+
   ret = aci_gap_set_discoverable(ADV_DATA_TYPE,
                                 (ADV_INTERVAL_MIN_MS*1000)/625,(ADV_INTERVAL_MAX_MS*1000)/625,
-                                 STATIC_RANDOM_ADDR, NO_WHITE_LIST_USE,
+								 STATIC_RANDOM_ADDR, NO_WHITE_LIST_USE,
                                  sizeof(local_name), local_name, 0, NULL, 0, 0); 
-  
-  aci_gap_update_adv_data(26, manuf_data);
-  
+
+  aci_gap_update_adv_data(sizeof(manuf_data), manuf_data);
+
   if(ret != BLE_STATUS_SUCCESS)
   {
     PRINTF("aci_gap_set_discoverable() failed: 0x%02x\r\n", ret);

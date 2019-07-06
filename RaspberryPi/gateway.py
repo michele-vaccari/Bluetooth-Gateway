@@ -13,6 +13,7 @@ from blue_st_sdk.manager import ManagerListener
 from blue_st_sdk.node import NodeListener
 from blue_st_sdk.feature import FeatureListener
 from blue_st_sdk.features.feature_temperature import FeatureTemperature
+from blue_st_sdk.features.feature_humidity import FeatureHumidity
 
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
@@ -79,15 +80,40 @@ class MyNodeListener(NodeListener):
 
 
 #
-# Implementation of the interface used by the Feature class to notify that a
+# Implementation of the interface used by the Feature class to notify that temperature
 # feature has updated its data.
 #
-class MyFeatureListener(FeatureListener):
+class TemperatureFeatureListener(FeatureListener):
 
     scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
     credentials = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
     client = gspread.authorize(credentials)
-    sheet = client.open("SensorData").worksheets()
+    temperatureSheet = client.open("SensorData").worksheet("Temperature")
+
+    #
+    # To be called whenever the feature updates its data.
+    #
+    # @param feature Feature that has updated.
+    # @param sample  Data extracted from the feature.
+    #
+    def on_update(self, feature, sample):
+        print(feature)
+        temperature = FeatureTemperature.get_temperature(sample)
+        currentTime = time.localtime()
+        timeToString = time.strftime("%m/%d/%Y %H:%M:%S", currentTime)
+        self.temperatureSheet.append_row([timeToString,float(temperature)])
+        print('Sent the following data: ', timeToString, float(temperature))
+
+#
+# Implementation of the interface used by the Feature class to notify that humidity
+# feature has updated its data.
+#
+class HumidityFeatureListener(FeatureListener):
+
+    scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
+    credentials = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
+    client = gspread.authorize(credentials)
+    humiditySheet = client.open("SensorData").worksheet("Humidity")
     
     #
     # To be called whenever the feature updates its data.
@@ -96,12 +122,12 @@ class MyFeatureListener(FeatureListener):
     # @param sample  Data extracted from the feature.
     #
     def on_update(self, feature, sample):
-        temperature = FeatureTemperature.get_temperature(sample)
-        for ii in self.sheet:
-          currentTime = time.localtime()
-          timeToString = time.strftime("%m/%d/%Y %H:%M:%S", currentTime)
-          ii.append_row([timeToString,float(temperature)])
-          print('Sent the following data: ', timeToString, float(temperature))
+        print(feature)
+        humidity = FeatureHumidity.get_humidity(sample)
+        currentTime = time.localtime()
+        timeToString = time.strftime("%m/%d/%Y %H:%M:%S", currentTime)
+        self.humiditySheet.append_row([timeToString,float(humidity)])
+        print('Sent the following data: ', timeToString, float(humidity))
 
 
 # MAIN APPLICATION
@@ -158,16 +184,19 @@ def main(argv):
             i = 0
             features = device.get_features()
             temperatureIndex = None
+            humidityIndex = None
 
             for feature in features:
-              print(feature.get_name())
               if feature.get_name() == FeatureTemperature.FEATURE_NAME:
-                print("Temperature feature found\n")
+                print("Temperature feature found")
                 temperatureIndex = i
+              elif feature.get_name() == FeatureHumidity.FEATURE_NAME:
+                print("Humidity feature found")
+                humidityIndex = i
               i+=1
-            
-            if temperatureIndex is None:
-              print("No temperature feature found")
+
+            if temperatureIndex is None and humidityIndex is None:
+              print("No temperature or humidity feature found")
               # Disconnecting from the device.
               print('\nDisconnecting from %s...' % (device.get_name()))
               device.disconnect()
@@ -178,15 +207,22 @@ def main(argv):
               # Going back to the list of devices.
               break
 
-            temperatureFeature = features[temperatureIndex]
+            # Enabling notifications for temperature data
+            if temperatureIndex is not None:
+              temperatureFeature = features[temperatureIndex]
+              temperatureListener = TemperatureFeatureListener()
+              temperatureFeature.add_listener(temperatureListener)
+              device.enable_notifications(temperatureFeature)
             
-            # Enabling notifications.
-            feature_listener = MyFeatureListener()
-            feature.add_listener(feature_listener)
-            device.enable_notifications(temperatureFeature)
+            # Enabling notifications for humidity data
+            if humidityIndex is not None:
+              humidityFeature = features[humidityIndex]
+              humidityListener = HumidityFeatureListener()
+              humidityFeature.add_listener(humidityListener)
+              device.enable_notifications(humidityFeature)
 
             # Getting notifications.
-            print('Start getting temperature notifications\n')
+            print('\nStart getting notifications\n')
             while True:
               device.wait_for_notifications(0.05)
 
