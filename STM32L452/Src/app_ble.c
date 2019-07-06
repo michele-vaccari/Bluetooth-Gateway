@@ -26,6 +26,8 @@
 #include "sm.h"
 #include "stm32l4xx_hal_tim.h"
 
+#include "AM2320.h"
+
 // Private defines
 #define USE_BUTTON 0	// 1 to send environmental and motion data when pushing the user button
  	 	 	 	 	 	// 0 to send environmental and motion data automatically (period = 1 sec)
@@ -34,7 +36,7 @@
 I2C_HandleTypeDef hi2c3;
 
 extern volatile uint8_t set_connectable;
-extern volatile int     connected;
+extern volatile int connected;
 // at startup, suppose the X-NUCLEO-IDB04A1 is used
 uint8_t bnrg_expansion_board = IDB04A1; 
 uint8_t bdaddr[BDADDR_SIZE];
@@ -230,10 +232,10 @@ void ReadTemperatureAndHumidityFromSensor(float *temperature, float *humidity)
 	i2cData[0] = 0x03;
 	i2cData[1] = 0x00;
 	i2cData[2] = 0x04;
-	HAL_I2C_Master_Transmit(&hi2c3, 0xB8, i2cData, 8, 10);
+	HAL_I2C_Master_Transmit(&hi2c3, AM2320_ADDR_TX, i2cData, 8, 10);
 
 	//Read via I2C
-	HAL_I2C_Master_Receive(&hi2c3, 0xB9, &i2cData, 8, 10);
+	HAL_I2C_Master_Receive(&hi2c3, AM2320_ADDR_RX, i2cData, 8, 10);
 
 	// Read temperature
 	t = ((i2cData[4] & 0x7F) << 8) + i2cData[5];
