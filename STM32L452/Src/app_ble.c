@@ -30,8 +30,6 @@
 #define USE_BUTTON 0	// 1 to send environmental and motion data when pushing the user button
  	 	 	 	 	 	// 0 to send environmental and motion data automatically (period = 1 sec)
 
-// Private macros
-
 // Private variables
 I2C_HandleTypeDef hi2c3;
 
@@ -93,7 +91,6 @@ void SendsTemperatureAndHumidity_Init(I2C_HandleTypeDef *hi2c)
 
 	// Change the MAC address to avoid issues with Android cache if different boards have the same MAC address
 	SetRandomBleMacAddress(bdaddr, hardwareVersion, firmwareVersion);
-	PRINTF("BLE MAC Address: %d\n\r", bdaddr);
 
 	int ret;
 	ret = aci_hal_write_config_data(CONFIG_DATA_PUBADDR_OFFSET,
@@ -127,7 +124,7 @@ void SendsTemperatureAndHumidity_Init(I2C_HandleTypeDef *hi2c)
 	}
 
 	// Update characteristic name
-	const char *name = "TSensor";
+	const char *name = "DSensor";
 	ret = aci_gatt_update_char_value(service_handle, dev_name_char_handle, 0,
 								   	 strlen(name), (uint8_t *)name);
 	PRINTF("Characteristic name: %s\n\r", name);
@@ -200,9 +197,8 @@ static void User_Init(void)
 // and send the updated acceleration data to the remote client.
 static void User_Process(void)
 {
-	float data_t;
-	float data_h;
-	static uint32_t counter = 0;
+	float temperature;
+	float humidity;
 
 	if (set_connectable)
 	{
@@ -215,18 +211,12 @@ static void User_Process(void)
 	{
 	  if (HAL_I2C_IsDeviceReady(&hi2c3, 0xB8, 2, 10) == HAL_OK)
 	  {
-		  ReadTemperatureAndHumidityFromSensor(&data_t, &data_h);
+		  ReadTemperatureAndHumidityFromSensor(&temperature, &humidity);
 	  }
 
-	  BlueMS_Environmental_Update((int16_t)(data_h *10), (int16_t)(data_t * 10));
+	  UpdateBluetoothData((int16_t)(temperature *10), (int16_t)(humidity * 10));
 
-	  counter ++;
-	  if (counter == 40)
-	  {
-		counter = 0;
-		//Reset_Motion_Values();
-	  }
-	  HAL_Delay(3000); // wait 3 sec before sending new data
+	  HAL_Delay(10000); // wait 10 sec before sending new data
 	}
 }
 

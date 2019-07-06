@@ -58,6 +58,6 @@ typedef union Char_UUID_t_s {
 tBleStatus Add_HWServW2ST_Service(void);
 tBleStatus Add_SWServW2ST_Service(void);
 void Read_Request_CB(uint16_t handle);
-tBleStatus BlueMS_Environmental_Update(int16_t hum, int16_t temp);
+tBleStatus UpdateBluetoothData(int16_t temperature, int16_t humidity);
 
 #endif /* _GATT_DB_H_ */
