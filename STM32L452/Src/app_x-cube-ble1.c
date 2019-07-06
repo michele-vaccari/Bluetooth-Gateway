@@ -48,7 +48,7 @@ static volatile uint8_t user_button_pressed = 0;
 // Private function prototypes
 static void User_Process(void);
 static void User_Init(void);
-static void Set_Random_Environmental_Values(float *data_t, float *data_p);
+static void Set_Random_Environmental_Values(float *data_t, float *data_h);
 static void SetRandomBleMacAddress(uint8_t* bleMacAddress, uint8_t hardwareVersion, uint16_t firmwareVersion);
 
 #if PRINT_CSV_FORMAT
@@ -218,7 +218,7 @@ static void User_Process(void)
 
 	  // Update emulated Environmental data
 	  Set_Random_Environmental_Values(&data_t, &data_p);
-	  BlueMS_Environmental_Update((int32_t)(data_p *100), (int16_t)(data_t * 10));
+	  BlueMS_Environmental_Update((int16_t)(data_p *10), (int16_t)(data_t * 10));
 
 	  counter ++;
 	  if (counter == 40)
@@ -226,7 +226,7 @@ static void User_Process(void)
 		counter = 0;
 		//Reset_Motion_Values();
 	  }
-	  HAL_Delay(10000); // wait 10 sec before sending new data
+	  HAL_Delay(3000); // wait 3 sec before sending new data
 	}
 }
 
@@ -236,10 +236,10 @@ static void User_Process(void)
  * @param  float pointer to pressure data
  * @retval None
  */
-static void Set_Random_Environmental_Values(float *data_t, float *data_p)
+static void Set_Random_Environmental_Values(float *data_t, float *data_h)
 { 
   *data_t = 27.0 + ((uint64_t)rand()*5)/RAND_MAX;     /* T sensor emulation */
-  *data_p = 1000.0 + ((uint64_t)rand()*80)/RAND_MAX; /* P sensor emulation */
+  *data_h = 50.0 + ((uint64_t)rand()*10)/RAND_MAX; /* H sensor emulation */
 }
 
 /**

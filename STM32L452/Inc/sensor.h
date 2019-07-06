@@ -6,7 +6,7 @@
 
 #define IDB04A1 0
 #define IDB05A1 1
-#define SENSOR_ADVERTISING_NAME   'T','S','e','n','s','o','r'
+#define SENSOR_ADVERTISING_NAME   'T','H','S','e','n','s','o','r'
 #define BDADDR_SIZE        6
 
 void Set_DeviceConnectable(void);
