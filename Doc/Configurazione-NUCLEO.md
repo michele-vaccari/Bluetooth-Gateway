@@ -10,7 +10,7 @@ Di seguito vengono descritti i passi da effettuare per la preparazione della sch
 
 ### Adattamento del pinout della scheda NUCLEO-L452RE con la scheda IDB05A1
 
-Visualizzando il pinout della scheda IDB05A1 si nota che non è compatibile con la scheda NUCLEO-L452RE. Occorre effettuare una rimappatura effettuando cablando in modo diverso le uscite.
+Visualizzando il pinout della scheda IDB05A1 si nota che non è compatibile con la scheda NUCLEO-L452RE. Occorre effettuare una rimappatura cablando in modo diverso le uscite.
 
 Partendo dal pinout della scheda IDB05A1
 ![Pinout IDB05A1](Img/pinout-IDB05A1.jpg)
