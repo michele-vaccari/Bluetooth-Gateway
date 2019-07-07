@@ -1,24 +1,14 @@
 // Includes
+#include <app_ble.h>
 #include "main.h"
-#include "app_x-cube-ble1.h"
-
-// Private include
-
-// Private typedef
-
-// Private define
-
-// Private macro
 
 // Private variables
 I2C_HandleTypeDef hi2c3;
 
 // Private function prototypes
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_I2C3_Init(void);
-
-// Private user code
+static void GPIO_Init(void);
+static void I2C3_Init(void);
 
 // The application entry point.
 int main(void)
@@ -32,14 +22,14 @@ int main(void)
 	SystemClock_Config();
 
 	// Initialize all configured peripherals
-	MX_GPIO_Init();
-	MX_I2C3_Init();
-	MX_BlueNRG_MS_Init(&hi2c3);
+	GPIO_Init();
+	I2C3_Init();
+	SendsTemperatureAndHumidity_Init(&hi2c3);
 
 	// Infinite loop
 	while (1)
 	{
-		MX_BlueNRG_MS_Process();
+		SendsTemperatureAndHumidity_Process();
 	}
 }
 
@@ -93,7 +83,7 @@ void SystemClock_Config(void)
 }
 
 // I2C3 Initialization Function
-static void MX_I2C3_Init(void)
+static void I2C3_Init(void)
 {
 	hi2c3.Instance = I2C3;
 	hi2c3.Init.Timing = 0x10909CEC;
@@ -123,7 +113,7 @@ static void MX_I2C3_Init(void)
 }
 
 // GPIO Initialization Function
-static void MX_GPIO_Init(void)
+static void GPIO_Init(void)
 {
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
 

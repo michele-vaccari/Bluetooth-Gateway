@@ -1,12 +1,13 @@
 // Define to prevent recursive inclusion
 #ifndef __APP_X_CUBE_BLE1_C
 #define __APP_X_CUBE_BLE1_C
+
 #ifdef __cplusplus
  extern "C" {
 #endif
 
 // Includes
-#include "app_x-cube-ble1.h"
+#include <app_ble.h>
 
 #include "hci.h"
 #include "hci_le.h"
@@ -25,17 +26,17 @@
 #include "sm.h"
 #include "stm32l4xx_hal_tim.h"
 
+#include "AM2320.h"
+
 // Private defines
 #define USE_BUTTON 0	// 1 to send environmental and motion data when pushing the user button
  	 	 	 	 	 	// 0 to send environmental and motion data automatically (period = 1 sec)
-
-// Private macros
 
 // Private variables
 I2C_HandleTypeDef hi2c3;
 
 extern volatile uint8_t set_connectable;
-extern volatile int     connected;
+extern volatile int connected;
 // at startup, suppose the X-NUCLEO-IDB04A1 is used
 uint8_t bnrg_expansion_board = IDB04A1; 
 uint8_t bdaddr[BDADDR_SIZE];
@@ -45,7 +46,6 @@ static volatile uint8_t user_button_pressed = 0;
 // Private function prototypes
 static void User_Process(void);
 static void User_Init(void);
-static void Set_Random_Environmental_Values(float *data_t, float *data_h);
 static void SetRandomBleMacAddress(uint8_t* bleMacAddress, uint8_t hardwareVersion, uint16_t firmwareVersion);
 void ReadTemperatureAndHumidityFromSensor(float *temperature, float *humidity);
 
@@ -61,7 +61,7 @@ void print_csv_time(void)
 }
 #endif
 
-void MX_BlueNRG_MS_Init(I2C_HandleTypeDef *hi2c)
+void SendsTemperatureAndHumidity_Init(I2C_HandleTypeDef *hi2c)
 {
 	hi2c3 = *hi2c;
 
@@ -93,7 +93,6 @@ void MX_BlueNRG_MS_Init(I2C_HandleTypeDef *hi2c)
 
 	// Change the MAC address to avoid issues with Android cache if different boards have the same MAC address
 	SetRandomBleMacAddress(bdaddr, hardwareVersion, firmwareVersion);
-	PRINTF("BLE MAC Address: %d\n\r", bdaddr);
 
 	int ret;
 	ret = aci_hal_write_config_data(CONFIG_DATA_PUBADDR_OFFSET,
@@ -127,7 +126,7 @@ void MX_BlueNRG_MS_Init(I2C_HandleTypeDef *hi2c)
 	}
 
 	// Update characteristic name
-	const char *name = "TSensor";
+	const char *name = "DSensor";
 	ret = aci_gatt_update_char_value(service_handle, dev_name_char_handle, 0,
 								   	 strlen(name), (uint8_t *)name);
 	PRINTF("Characteristic name: %s\n\r", name);
@@ -181,7 +180,7 @@ void MX_BlueNRG_MS_Init(I2C_HandleTypeDef *hi2c)
 }
 
 // BlueNRG-MS background task
-void MX_BlueNRG_MS_Process(void)
+void SendsTemperatureAndHumidity_Process(void)
 {
 	User_Process();
 	hci_user_evt_proc();
@@ -200,9 +199,8 @@ static void User_Init(void)
 // and send the updated acceleration data to the remote client.
 static void User_Process(void)
 {
-	float data_t;
-	float data_h;
-	static uint32_t counter = 0;
+	float temperature;
+	float humidity;
 
 	if (set_connectable)
 	{
@@ -215,18 +213,12 @@ static void User_Process(void)
 	{
 	  if (HAL_I2C_IsDeviceReady(&hi2c3, 0xB8, 2, 10) == HAL_OK)
 	  {
-		  ReadTemperatureAndHumidityFromSensor(&data_t, &data_h);
+		  ReadTemperatureAndHumidityFromSensor(&temperature, &humidity);
 	  }
 
-	  BlueMS_Environmental_Update((int16_t)(data_h *10), (int16_t)(data_t * 10));
+	  UpdateBluetoothData((int16_t)(temperature *10), (int16_t)(humidity * 10));
 
-	  counter ++;
-	  if (counter == 40)
-	  {
-		counter = 0;
-		//Reset_Motion_Values();
-	  }
-	  HAL_Delay(3000); // wait 3 sec before sending new data
+	  HAL_Delay(10000); // wait 10 sec before sending new data
 	}
 }
 
@@ -240,10 +232,10 @@ void ReadTemperatureAndHumidityFromSensor(float *temperature, float *humidity)
 	i2cData[0] = 0x03;
 	i2cData[1] = 0x00;
 	i2cData[2] = 0x04;
-	HAL_I2C_Master_Transmit(&hi2c3, 0xB8, i2cData, 8, 10);
+	HAL_I2C_Master_Transmit(&hi2c3, AM2320_ADDR_TX, i2cData, 8, 10);
 
 	//Read via I2C
-	HAL_I2C_Master_Receive(&hi2c3, 0xB9, &i2cData, 8, 10);
+	HAL_I2C_Master_Receive(&hi2c3, AM2320_ADDR_RX, i2cData, 8, 10);
 
 	// Read temperature
 	t = ((i2cData[4] & 0x7F) << 8) + i2cData[5];
@@ -253,18 +245,6 @@ void ReadTemperatureAndHumidityFromSensor(float *temperature, float *humidity)
 
 	h = (i2cData[2] << 8) + i2cData[3];
 	*humidity = h / 10.0;
-}
-
-/**
- * @brief  Set random values for all environmental sensor data
- * @param  float pointer to temperature data
- * @param  float pointer to pressure data
- * @retval None
- */
-static void Set_Random_Environmental_Values(float *data_t, float *data_h)
-{ 
-  *data_t = 27.0 + ((uint64_t)rand()*5)/RAND_MAX;     /* T sensor emulation */
-  *data_h = 50.0 + ((uint64_t)rand()*10)/RAND_MAX; /* H sensor emulation */
 }
 
 /**
@@ -301,4 +281,4 @@ void BSP_PB_Callback(Button_TypeDef Button)
 #ifdef __cplusplus
 }
 #endif
-#endif /* __APP_X_CUBE_BLE1_C */
+#endif

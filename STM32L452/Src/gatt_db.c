@@ -27,7 +27,6 @@ do {\
 /* Hardware Characteristics Service */
 #define COPY_HW_SENS_W2ST_SERVICE_UUID(uuid_struct)    COPY_UUID_128(uuid_struct,0x00,0x00,0x00,0x00,0x00,0x01,0x11,0xe1,0x9a,0xb4,0x00,0x02,0xa5,0xd5,0xc5,0x1b)
 #define COPY_ENVIRONMENTAL_W2ST_CHAR_UUID(uuid_struct) COPY_UUID_128(uuid_struct,0x00,0x00,0x00,0x00,0x00,0x01,0x11,0xe1,0xac,0x36,0x00,0x02,0xa5,0xd5,0xc5,0x1b)
-#define COPY_ACC_GYRO_MAG_W2ST_CHAR_UUID(uuid_struct)  COPY_UUID_128(uuid_struct,0x00,0xE0,0x00,0x00,0x00,0x01,0x11,0xe1,0xac,0x36,0x00,0x02,0xa5,0xd5,0xc5,0x1b)
 /* Software Characteristics Service */
 #define COPY_SW_SENS_W2ST_SERVICE_UUID(uuid_struct)    COPY_UUID_128(uuid_struct,0x00,0x00,0x00,0x00,0x00,0x02,0x11,0xe1,0x9a,0xb4,0x00,0x02,0xa5,0xd5,0xc5,0x1b)
 #define COPY_QUATERNIONS_W2ST_CHAR_UUID(uuid_struct)   COPY_UUID_128(uuid_struct,0x00,0x00,0x01,0x00,0x00,0x01,0x11,0xe1,0xac,0x36,0x00,0x02,0xa5,0xd5,0xc5,0x1b)
@@ -39,12 +38,7 @@ uint16_t SWServW2STHandle, QuaternionsCharHandle;
 Service_UUID_t service_uuid;
 Char_UUID_t char_uuid;
 
-extern AxesRaw_t x_axes;
-extern AxesRaw_t g_axes;
-extern AxesRaw_t m_axes;
-
 extern uint16_t connection_handle;
-extern uint32_t start_time;
  
 /**
  * @brief  Add the 'HW' service
@@ -77,6 +71,8 @@ tBleStatus Add_HWServW2ST_Service(void)
                            16, 0, &EnvironmentalCharHandle);
   if (ret != BLE_STATUS_SUCCESS) 
     return BLE_STATUS_ERROR;
+
+  return BLE_STATUS_SUCCESS;
 }
 
 /**
@@ -120,7 +116,7 @@ fail:
 
 /*******************************************************************************
 * Function Name  : Read_Request_CB.
-* Description    : Update the sensor valuse.
+* Description    : Update the sensor value.
 * Input          : Handle of the characteristic to update.
 * Return         : None.
 *******************************************************************************/
@@ -130,10 +126,9 @@ void Read_Request_CB(uint16_t handle)
 
   if (handle == EnvironmentalCharHandle + 1)
   {
-    float data_t, data_h;
-    data_t = 27.0 + ((uint64_t)rand()*5)/RAND_MAX; //T sensor emulation
-    data_h = 30.0 + ((uint64_t)rand()*5)/RAND_MAX; //H sensor emulation
-    BlueMS_Environmental_Update((int16_t)(data_h *10), (int16_t)(data_t * 10));
+    float temperature, humidity;
+	ReadTemperatureAndHumidityFromSensor(&temperature, &humidity);
+	UpdateBluetoothData((int16_t)(temperature *10), (int16_t)(humidity * 10));
   }
 
   if(connection_handle !=0)
@@ -146,14 +141,14 @@ void Read_Request_CB(uint16_t handle)
   }
 }
 
-tBleStatus BlueMS_Environmental_Update(int16_t hum, int16_t temp)
+tBleStatus UpdateBluetoothData(int16_t temperature, int16_t humidity)
 {
   tBleStatus ret;
   uint8_t buff[8];
   HOST_TO_LE_16(buff, HAL_GetTick()>>3);
 
-  HOST_TO_LE_16(buff+2,hum);
-  HOST_TO_LE_16(buff+4,temp);
+  HOST_TO_LE_16(buff+2,humidity);
+  HOST_TO_LE_16(buff+4,temperature);
 
   ret = aci_gatt_update_char_value(HWServW2STHandle, EnvironmentalCharHandle, 
                                    0, 8, buff);
