@@ -14,6 +14,7 @@ Di seguito vengono descritti i passi da effettuare per la configurazione dell'am
 ### Setup per l'accesso ai fogli di calcolo di Google Drive
 
 * Accedere al proprio account di Google Drive e creare un nuovo foglio di calcolo vuoto dal nome ```SensorData```
+* Il foglio di calcolo ```SensorData``` dovrà contenre due fogli ```Temperature``` e ```Humidity```
 * Aprire il file ```credentials.json``` con un editor di testo
 * Condividere il foglio di calcolo ```SensorData``` con la mail contenuta nel campo ```client_email``` del file ```credentials.json```
 
